@@ -14,7 +14,7 @@
   "license": "LicenseRef-LICENSE",
   "main": "server.js",
   "engines": {
-    "node": "22.2.x",
+    "node": "20.15.x",
     "npm": "10.7.x"
   },
   "dependencies": {
