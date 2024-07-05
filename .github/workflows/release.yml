@@ -1,0 +1,87 @@
+name: Release Workflow
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build and tag Docker image
+        run: |
+          docker build -t user-access:${{ github.event.release.tag_name }} .
+          docker tag user-access:${{ github.event.release.tag_name }} ghcr.io/${{ github.repository_owner }}/user-access:${{ github.event.release.tag_name }}
+
+      - name: Install trivy
+        run: |
+          wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+
+      - name: Run Trivy vulnerability scan
+        run: trivy image user-access:${{ github.event.release.tag_name }} --format json > trivy-report.json
+
+      - name: Analyse vulnerability report script
+        run: curl -o process_vulnerability_report.py https://raw.githubusercontent.com/mikigbo/devops-tools/main/process_vulnerability_report.py
+
+      - name: Process vulnerability report
+        run: python process_vulnerability_report.py trivy-report.json
+
+      - name: Determine success or failure
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "Vulnerability check passed. Proceeding with deployment."
+          else
+            echo "Vulnerability check failed. Halting deployment."
+            exit 1
+          fi
+
+      - name: delete vulnerability file
+        run: rm trivy-report.json
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Push Docker image to GitHub Container Registry
+        run: docker push ghcr.io/${{ github.repository_owner }}/user-access:${{ github.event.release.tag_name }}
+
+      - name: Update values.yaml in main branch and merge to release tag
+        run: |
+          TAG=$(echo "${{ github.event.release.tag_name }}")
+
+          # Configure Git
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
+          # Fetch and checkout main branch
+          git fetch origin
+          git checkout main
+          git pull origin main
+
+          # Update the tag in values.yaml
+          sed -i "s/tag: .*/tag: \"$TAG\"/" argocd/values.yaml
+
+          # Commit and push changes
+          git add argocd/values.yaml
+          git commit -m "Update values.yaml for release $TAG"
+          git push origin main
+
+          # Checkout cd-release branch
+          git checkout cd-release
+          git pull origin cd-release
+
+          # Merge main into cd-release, preferring main's changes in conflicts and allowing unrelated histories
+          git merge origin/main --allow-unrelated-histories -X theirs || exit 1
+
+          # Push changes
+          git push origin cd-release

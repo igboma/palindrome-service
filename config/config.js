@@ -3,9 +3,7 @@
 /**
  * Module dependencies.
  */
-const _ = require('lodash'),
-	glob = require('glob')
-
+const _ = require('lodash');
 /**
  * Load app configurations
  */

@@ -1,36 +1,43 @@
-const Datastore = require('nedb')
-const db = new Datastore()
+const Datastore = require('@seald-io/nedb');
+const db = new Datastore();
 
 class Message {
 	constructor() {
 		db.ensureIndex({ fieldName: 'text', unique: true }, function (err) {
 			if (err)
-				console.log(err)
-		})
+				console.log(err);
+		});
 	}
 
-	find() {
-		return db.find({})
-	}
+	find(query = {}, projection = {}, callback) {
+        db.find(query, projection, callback);
+    }
 
-	findById(id) {
-		return db.find({ _id: id })
-	}
+	findById(id, projection = {}, callback) {
+        db.findOne({ _id: id }, projection, callback);
+    }
 
-	save(id, update) {
-		return db.update({ _id: id }, update, {})
-	}
+	findByIdWithoutProj(id, callback) {
+        db.findOne({ _id: id }, callback);
+    }
 
-	remove(id, remove) {
-		return db.remove({ _id: id }, remove)
-	}
+	save(id, update, callback) {
+        db.update({ _id: id }, update, {}, callback);
+    }
 
-	insert(data) {
-		return db.insert(data, (err, newDoc) => {
-			if (err)
-				return err
-			return newDoc
-		})
+	remove(id, callback) {
+        db.remove({ _id: id }, {}, callback);
+    }
+
+	insert(data, callback) {
+        data.isPalindrome = this.isTextPalindrome(data.text);
+        db.insert(data, callback);
+    }
+
+	isTextPalindrome(text) {
+		text = text || "";
+		const cleanedText = text.replace(/[^A-Za-z0-9]/g, "").toLowerCase(); // remove all non alphanumric character
+		return cleanedText === cleanedText.split("").reverse().join("");
 	}
 }
 

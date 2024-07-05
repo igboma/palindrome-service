@@ -3,15 +3,15 @@
 /**
  * Module dependencies.
  */
-let express = require('express')
-let compress = require('compression')
-let methodOverride = require('method-override')
-let config = require('./config')
-let router = express.Router()
+const express = require('express');
+const compress = require('compression');
+const methodOverride = require('method-override');
+const config = require('./config');
+const router = express.Router();
 
 module.exports = function () {
 	// Initialize express app
-	let app = express();
+	const app = express();
 
 	// Setting application local variables
 	app.locals.title = config.app.title;
@@ -37,12 +37,14 @@ module.exports = function () {
 	// Environment dependent middleware
 	app.locals.cache = 'memory';
 
-	app.use(express.json())
-	app.use(methodOverride())
+	app.use(express.json());
+	app.use(methodOverride());
 
 	// Routes definition
-	router.use('/api/v1', require('../app/routes/message.server.routes'))
-	app.use(router)
+	router.use('/api/v1', require('../app/routes/message.server.routes'));
+	router.use('/', require('../app/routes/home.server.routes')); // Include the new routes here
+
+	app.use(router);
 
 	// Assume 'not found' in the error msgs is a 404.
 	app.use(function (err, req, res, next) {
