@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "22" # Specify the Node.js version
+          node-version: "20" # Specify the Node.js version
 
       - name: Install dependencies
         run: npm install
@@ -31,6 +31,13 @@ jobs:
 
       - name: Run Mocha tests
         run: npm test
+
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Run Helm lint
+        run: helm lint ./helmchart
 
       - name: Build Docker image
         run: docker build -t palindrome-server:${{ github.sha }} .
