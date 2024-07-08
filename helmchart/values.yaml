@@ -27,5 +27,5 @@ secret:
   data: {}
 
 config:
-  setting1: "value1"
+  lang: "en"
   setting2: "value2"
