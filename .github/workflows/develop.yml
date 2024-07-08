@@ -32,6 +32,13 @@ jobs:
       - name: Run Mocha tests
         run: npm test
 
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Run Helm lint
+        run: helm lint ./helmchart
+
       - name: Build Docker image
         run: docker build -t palindrome-server:${{ github.sha }} .
 
