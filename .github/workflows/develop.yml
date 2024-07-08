@@ -3,10 +3,10 @@ name: CI for Main Branch using Node.js
 on:
   push:
     branches:
-      - main
+      - develop
   pull_request:
     branches:
-      - main
+      - develop
 
 jobs:
   build-and-test:
@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Run audit of the package. Check vulnerabilities
+        run: npm audit
+        
       - name: Run ESLint
         run: npm run lint
 
@@ -47,11 +50,11 @@ jobs:
 
       - name: Download Node.js script
         run: |
-          curl -o nodejs/analyzeVulnerabilities.js https://raw.githubusercontent.com/mikigbo/devops-tools/main/nodejs/analyse_report.js
+          curl -o nodejs/analyzeVulnerabilities.js https://raw.githubusercontent.com/igboma/devops-tools/main/nodejs/analyse_report.js
 
       - name: Download package.json
         run: |
-          curl -o nodejs/package.json https://raw.githubusercontent.com/mikigbo/devops-tools/main/nodejs/package.json
+          curl -o nodejs/package.json https://raw.githubusercontent.com/igboma/devops-tools/main/nodejs/package.json
 
       - name: Install Node.js dependencies for vulnerability analysis
         working-directory: nodejs

@@ -14,8 +14,9 @@ jobs:
 
       - name: Build and tag Docker image
         run: |
-          docker build -t user-access:${{ github.event.release.tag_name }} .
-          docker tag user-access:${{ github.event.release.tag_name }} ghcr.io/${{ github.repository_owner }}/user-access:${{ github.event.release.tag_name }}
+          docker build -t palindrome-server:${{ github.event.release.tag_name }} .
+          docker tag palindrome-server:${{ github.event.release.tag_name }} mikigbo/palindrome-server:${{ github.event.release.tag_name }}
+          docker tag palindrome-server:${{ github.event.release.tag_name }} mikigbo/palindrome-server:latest
 
       - name: Install trivy
         run: |
@@ -25,13 +26,26 @@ jobs:
           sudo apt-get install trivy
 
       - name: Run Trivy vulnerability scan
-        run: trivy image user-access:${{ github.event.release.tag_name }} --format json > trivy-report.json
+        run: trivy image palindrome-server:${{ github.event.release.tag_name }} --format json > trivy-report.json
 
-      - name: Analyse vulnerability report script
-        run: curl -o process_vulnerability_report.py https://raw.githubusercontent.com/mikigbo/devops-tools/main/process_vulnerability_report.py
+      - name: Create directory for Node.js code
+        run: mkdir nodejs
 
-      - name: Process vulnerability report
-        run: python process_vulnerability_report.py trivy-report.json
+      - name: Download Node.js script
+        run: |
+          curl -o nodejs/analyzeVulnerabilities.js https://raw.githubusercontent.com/igboma/devops-tools/main/nodejs/analyse_report.js
+
+      - name: Download package.json
+        run: |
+          curl -o nodejs/package.json https://raw.githubusercontent.com/igboma/devops-tools/main/nodejs/package.json
+
+      - name: Install Node.js dependencies for vulnerability analysis
+        working-directory: nodejs
+        run: npm install
+
+      - name: Run vulnerability analysis
+        working-directory: nodejs
+        run: node analyzeVulnerabilities.js $GITHUB_WORKSPACE/trivy-report.json
 
       - name: Determine success or failure
         run: |
@@ -45,43 +59,44 @@ jobs:
       - name: delete vulnerability file
         run: rm trivy-report.json
 
-      - name: Login to GitHub Container Registry
+      - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GHCR_PAT }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Push Docker image to GitHub Container Registry
-        run: docker push ghcr.io/${{ github.repository_owner }}/user-access:${{ github.event.release.tag_name }}
+      - name: Push Docker images to Docker Hub
+        run: |
+          docker push mikigbo/palindrome-server:${{ github.event.release.tag_name }}
+          docker push mikigbo/palindrome-server:latest
 
       - name: Update values.yaml in main branch and merge to release tag
         run: |
-          TAG=$(echo "${{ github.event.release.tag_name }}")
-
-          # Configure Git
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Actions"
-
-          # Fetch and checkout main branch
-          git fetch origin
-          git checkout main
-          git pull origin main
-
-          # Update the tag in values.yaml
-          sed -i "s/tag: .*/tag: \"$TAG\"/" argocd/values.yaml
-
-          # Commit and push changes
-          git add argocd/values.yaml
-          git commit -m "Update values.yaml for release $TAG"
-          git push origin main
-
-          # Checkout cd-release branch
-          git checkout cd-release
-          git pull origin cd-release
-
-          # Merge main into cd-release, preferring main's changes in conflicts and allowing unrelated histories
-          git merge origin/main --allow-unrelated-histories -X theirs || exit 1
-
-          # Push changes
-          git push origin cd-release
+            TAG=$(echo "${{ github.event.release.tag_name }}")
+        
+            # Configure Git
+            git config user.email "actions@github.com"
+            git config user.name "GitHub Actions"
+        
+            # Fetch and checkout main branch
+            git fetch origin
+            git checkout main
+            git pull origin main
+        
+            # Update the tag in values.yaml
+            sed -i "s/tag: .*/tag: \"$TAG\"/" argocd/values.yaml
+        
+            # Commit and push changes
+            git add argocd/values.yaml
+            git commit -m "Update values.yaml for release $TAG"
+            git push origin main
+            
+            # Checkout cd-release branch
+            git checkout cd-release
+            git pull origin cd-release
+        
+            # Merge main into cd-release, preferring main's changes in conflicts and allowing unrelated histories
+            git merge origin/main --allow-unrelated-histories -X theirs || exit 1
+        
+            # Push changes
+            git push origin cd-release
