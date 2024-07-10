@@ -1,0 +1,31 @@
+replicaCount: 1
+
+image:
+  repository: mikigbo/palindrome-server
+  tag: "0.0.1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 6000
+  targetPort: 6000
+  portName: palindromeport
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  hosts:
+    - host: palindrome-server.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+secret:
+  name: palindrome-server-secret
+  data: {}
+
+config:
+  lang: "en"
+  DB_DIR: "/usr/src/app/data"
