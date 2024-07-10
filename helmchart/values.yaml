@@ -28,4 +28,4 @@ secret:
 
 config:
   lang: "en"
-  setting2: "value2"
+  DB_DIR: "/usr/src/app/data"
