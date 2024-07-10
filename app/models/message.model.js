@@ -1,6 +1,20 @@
 const Datastore = require('@seald-io/nedb');
-const db = new Datastore();
 const { isTextPalindrome } = require('../helper/utils');
+const fs = require('fs');
+const path = require('path');
+
+let db;
+if (process.env.DB_DIR) {
+	const dbDir = process.env.DB_DIR || path.join(__dirname, 'data');
+    if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+    }
+    const dbPath = path.join(dbDir, 'messages.db');
+    db = new Datastore({ filename: dbPath, autoload: true }); // File-based datastore
+} else {
+	db = new Datastore(); // In-memory datastore for unit tests
+}
+
 
 class Message {
 	constructor() {

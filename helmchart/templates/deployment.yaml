@@ -26,4 +26,13 @@ spec:
               value: "{{ .Values.service.targetPort }}"
             - name: LANG
               value: "{{ .Values.config.lang }}"
+            - name: DB_DIR
+              value: "{{ .Values.config.DB_DIR }}"
+           volumeMounts:
+            - mountPath: {{ .Values.config.DB_DIR }}
+              name: palindrome-storage
+      volumes:
+        - name: palindrome-storage
+          persistentVolumeClaim:
+            claimName: palindrome-pvc
 
