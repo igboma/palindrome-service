@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-deployment
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Release.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: {{ .Values.service.portName }}
+              containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: PORT
+              value: "{{ .Values.service.targetPort }}"
+            - name: LANG
+              value: "{{ .Values.config.lang }}"
+            - name: DB_DIR
+              value: "{{ .Values.config.DB_DIR }}"
+          volumeMounts:
+            - mountPath: {{ .Values.config.DB_DIR }}
+              name: palindrome-storage
+      volumes:
+        - name: palindrome-storage
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-pvc
